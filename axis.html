@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html ng-app>
+  <head>
+    <title>D3 - Line Chart - axes and grid using axis()</title>
+    <!-- script type="text/javascript" src="https://raw.github.com/jquery/sizzle/master/sizzle.js"></script -->
+    <script type="text/javascript" src="http://mbostock.github.com/d3/d3.min.js"></script>
+    
+    <style type="text/css">
+
+body {
+  font: 14px sans-serif;
+  background-color:#222;
+  background-image: linear-gradient(top, rgb(20,16,16) 0%, rgb(184,164,165) 76%);
+background-image: -o-linear-gradient(top, rgb(20,16,16) 0%, rgb(184,164,165) 76%);
+
+background-image: -webkit-linear-gradient(top, rgb(20,16,16) 0%, rgb(184,164,165) 76%);
+background-image: -ms-linear-gradient(top, rgb(20,16,16) 0%, rgb(184,164,165) 76%);
+ background-image: -moz-linear-gradient(center top , #E5EECC 62%, #B8A4A5 76%);
+background-image: -webkit-gradient(
+	linear,
+	left top,
+	left bottom,
+	color-stop(0, rgb(20,16,16)),
+	color-stop(0.76, rgb(184,164,165))
+);
+
+}
+
+.rules line, .rules path {
+  shape-rendering: crispEdges;
+  stroke: #000;
+}
+
+.rules .tick {
+}
+.rules .minor {
+  stroke: #BBB;
+}
+.rules .domain {
+  fill: none;
+}
+
+.grid .tick {
+  stroke: #CCC;
+}
+.svgOption{
+ float:left;
+ width:220px;
+ 
+}
+.container{
+  
+  float:left;
+  width:1000px;
+
+}
+fieldset{
+ height:600px;
+}
+input{
+ width:50px;
+}
+.gopt
+{
+  float:left;
+  padding:10px
+}
+  fieldset{
+			background: none repeat scroll 0 0 #EEEEEE;
+			border-radius: 11px 11px 11px 11px;
+			box-shadow: 10px 10px 10px gray;
+			float: left;
+			padding: 13px;
+			border: 5px solid white;
+		}
+		legend{
+			background-color: #222222;
+			border: 3px ridge white;
+			border-radius: 10px 10px 10px 10px;
+			box-shadow: 2px 5px 4px black;
+			color: #FFFFFF;
+			font-weight: bold;
+			margin: 2px;
+			padding: 4px 34px;
+		}
+		
+    </style>
+  </head>
+  <body ng-controller="TodoCtrl">
+  <div >
+  <fieldset class="svgOption">
+    <legend>Choose your option</legend>
+	<div ng-repeat="axis in axisoption">
+		X:<input type="text" ng-model="axis.x"  value="{{axis.x}}"/>
+		Y:<input type="text" ng-model="axis.y" value="{{axis.y}}" />
+		<button type="button" ng-click="AddNewAxis()">+</button>
+		<button type="button" ng-click="DeleteAxis($index)">X</button>
+	</div>
+  </fieldset>
+  </div>
+  <div class="container">
+   
+  <fieldset  >
+    <legend>Your Chart</legend>
+	<div class='gopt'>
+	Scale X-axis <br />
+	From: <input type="text" ng-model="xFrom" /> 
+	To:   <input type="text" ng-model="xTo"/>
+	
+	</div>
+	<div class='gopt'>
+		Scale Y-axis <br />
+		From: <input type="text" ng-model="yFrom" /> 
+		To:   <input type="text" ng-model="yTo"/>
+		
+		
+	</div>
+	<div class='gopt'>
+	No of partition x <input type="text" ng-model="xPart"/><br/><br/>
+	No of partition y<input type="text" ng-model="yPart"/>
+	</div>
+	<div class='gopt'>
+	
+		<input type="checkbox" ng-model="GridLines" /> Grid Lines
+		<br/>
+		Select Your line type 
+		<select name="SelectedLineType" ng-model="SelectedLineInterpolation" ng-options="c for c in Interpolation">
+		 <option value="">Select</option>
+		</select>
+   </div>
+   <div class='gopt'>
+		<button type="button" ng-click="DrawGraph()" >Draw Graph</button>
+   </div>
+		<div style="clear:both"></div>
+	<div  class="containersvg" >
+	<hr/>
+	</div>
+  </fieldset>
+  
+  </div>
+    <script type="text/javascript">
+
+
+var w = 760;
+var h = 400;
+var pad = 50;
+var z = d3.scale.category20c();
+var i = 0;
+var d0 = new Date("Jan 29 2011 UTC");
+var d1 = new Date("March 15 2011 UTC");
+var rules;
+var x;
+var y;
+var svg;
+var xMax;
+var xMin;
+var yMax;
+var yMin;
+var xPartition;
+var yPartition;
+// scale.linear() === range will be divide in number 
+// time.scale() == range will be divided into millisecond
+
+
+
+function initialise(){
+
+ x = d3.scale.linear().domain([xMin, xMax]).range([0,w]);
+ y = d3.scale.linear().domain([yMin, yMax]).range([h,0]);
+
+ svg = d3.select("div.containersvg")
+    .append("svg:svg")
+    .attr("height", h + pad)
+    .attr("width",  w + pad)
+
+var vis = svg.append("svg:g")
+    .attr("transform", "translate(40,20)")
+
+ rules = vis.append("svg:g").classed("rules", true)
+}
+
+function make_x_axis() {
+  return d3.svg.axis()
+      .scale(x)
+      .orient("bottom")
+      .ticks(xPartition)
+}
+
+function make_y_axis() {
+  return d3.svg.axis()
+      .scale(y)
+      .orient("left")
+      .ticks(yPartition)
+}
+function DrawAxis(){
+
+rules.append("svg:g").classed("labels x_labels", true)
+      .attr("transform", "translate(0,"+h+")")
+      .call(
+		 make_x_axis()
+		.tickSubdivide(1)
+		.tickSize(5)
+      // .tickFormat(d3.time.format("%Y/%m"))
+    )
+//.tickSize("main tick size","sub tick size","start and end tick size")
+rules.append("svg:g").classed("labels y_labels", true)
+      .call(
+		 make_y_axis()
+		.tickSubdivide(1)
+		.tickSize(10, 5, 0)
+	  
+    )
+}
+function DrawGrid(){
+rules.append("svg:g").classed("grid x_grid", true)
+    .attr("transform", "translate(0,"+h+")")
+    .call(make_x_axis()
+      .tickSize(-h,0,0)
+      .tickFormat("")
+    )
+
+rules.append("svg:g").classed("grid y_grid", true)
+    .call(make_y_axis()
+      .tickSize(-w,0,0)
+      .tickFormat("")
+    )
+
+}
+
+
+
+	function lineChart($scope){
+ //The data for our line
+ /*var lineData = [ { "x": 10,   "y": 5,"stroke":z(++i)},  { "x": 20,  "y": 20,"stroke":z(++i)},
+                  { "x": 40,  "y": 10,"stroke":z(++i)}, { "x": 60,  "y": 40,"stroke":z(++i)},
+                  { "x": 80,  "y": 5,"stroke":z(++i)},  { "x": 100, "y": 60,"stroke":z(++i)},
+				  { "x": 200,  "y": 200,"stroke":z(++i)},  { "x": 300, "y": 100,"stroke":z(++i)}
+				];*/
+ var lineData=[]
+ angular.copy($scope.axisoption, lineData);
+ 
+var scaledlinedata=[];
+for ( var i=0;i<lineData.length;i++){
+
+  scaledlinedata[i]=lineData[i];
+  scaledlinedata[i].x=x(lineData[i].x);
+  scaledlinedata[i].y=y(lineData[i].y);
+}
+ 
+ //This is the accessor function we talked about above
+ var lineFunction = d3.svg.line()
+						  .interpolate($scope.SelectedLineInterpolation)// type of line you want to display linear,basis-open,basis-closed
+                          .x(function(d) { return d.x; })
+                          .y(function(d) { return d.y; }) ;
+						  
+//The line SVG Path we draw
+var path = svg.append("path").attr("d", lineFunction(scaledlinedata))
+                             .style("stroke",'#0055CC')
+                             .attr("stroke-width", 2)
+                             .attr("fill", "none")
+							 .attr("transform", "translate(40,20)")
+							 .on("mouseover", function(){})
+							 .on("mouseout", function(){})
+							 ;
+						
+var pathLength= path.node().getTotalLength();
+
+path.attr("stroke-dasharray", (pathLength*2) + " " + (pathLength*2))
+  .attr("stroke-dashoffset", pathLength)
+  .transition()
+  .duration(5000)
+  .ease("easeInOutQuart")
+ 
+  .attr("stroke-dashoffset", 0);
+  						
+}
+    </script>
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
+	<script src="axis.js"></script>
+  </body>
+</html>
